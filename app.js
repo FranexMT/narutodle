@@ -408,6 +408,8 @@ function setupEventListeners() {
     document.getElementById('menu-stats').addEventListener('click', () => { toggleModal('menu'); toggleModal('stats'); });
     document.getElementById('menu-howto').addEventListener('click', () => { toggleModal('menu'); toggleModal('howto'); });
     document.getElementById('menu-credits').addEventListener('click', () => alert('Naruto DLE - Gracias por jugar!'));
+
+    document.getElementById('save-username-btn').addEventListener('click', saveShinobiIdentity);
     document.getElementById('achievements-btn').addEventListener('click', () => showAchievements());
 
     const charImg = document.getElementById('character-image');
