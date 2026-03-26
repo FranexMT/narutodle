@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Naruto DLE - Adivina el Personaje</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Bebas+Neue&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2280%22>🍥</text></svg>">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+    <div id="app">
+        <header class="header">
+            <div class="header-left">
+                <button class="menu-btn" id="menu-btn">☰</button>
+                <h1>🍥 <span>NARUTO</span>DLE</h1>
+            </div>
+            <div class="header-right">
+                <button class="header-btn" id="leaderboard-btn" title="Ranking Global">🏆</button>
+                <button class="header-btn" id="stats-btn" title="Estadisticas">📊</button>
+                <button class="header-btn" id="settings-btn" title="Ajustes">⚙️</button>
+                <button class="header-btn" id="achievements-btn" title="Logros">🏆</button>
+            </div>
+        </header>
+
+        <div class="mode-selector" id="mode-selector">
+            <button class="mode-btn active" data-mode="daily">
+                <span class="mode-icon">📅</span>
+                <span class="mode-name">Diario</span>
+            </button>
+            <button class="mode-btn" data-mode="infinite">
+                <span class="mode-icon">♾️</span>
+                <span class="mode-name">Infinito</span>
+            </button>
+            <button class="mode-btn" data-mode="hard">
+                <span class="mode-icon">💀</span>
+                <span class="mode-name">Dificil</span>
+            </button>
+        </div>
+
+        <div class="category-selector" id="category-selector">
+            <button class="category-btn active" data-category="all">Todos</button>
+            <button class="category-btn" data-category="akatsuki">☠️ Akatsuki</button>
+            <button class="category-btn" data-category="classic">📺 Naruto</button>
+            <button class="category-btn" data-category="shippuden">🌀 Shippuden</button>
+            <button class="category-btn" data-category="war">⚔️ Guerra</button>
+            <button class="category-btn" data-category="boruto">🌸 Boruto</button>
+        </div>
+
+        <div class="stats-bar">
+            <div class="stat-box">
+                <span class="stat-number" id="streak-count">0</span>
+                <span class="stat-text">Racha</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-number" id="best-streak">0</span>
+                <span class="stat-text">Mejor Racha</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-number" id="win-percent">0%</span>
+                <span class="stat-text">Victorias</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-number" id="games-played">0</span>
+                <span class="stat-text">Jugados</span>
+            </div>
+            <div class="stat-box lp-box" id="lp-stat-box">
+                <span class="stat-number lp-current" id="lp-count">0</span>
+                <span class="stat-text">LP</span>
+                <span class="lp-change-indicator" id="lp-indicator"></span>
+            </div>
+        </div>
+
+        <main class="game-container">
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>Invocando personajes...</p>
+            </div>
+
+            <div id="error" class="error hidden">
+                <p>Error al cargar personajes</p>
+                <button id="retry-btn">Reintentar</button>
+            </div>
+
+            <div id="game-area" class="hidden">
+                <div class="daily-countdown" id="daily-countdown">
+                    <span>Sig. personaje en:</span>
+                    <span id="countdown-timer">--:--:--</span>
+                </div>
+
+                <div class="game-type-selector" id="game-type-selector">
+                    <button class="game-type-btn active" data-type="character">
+                        <span class="type-icon">🥷</span>
+                        <span class="type-name">Personaje</span>
+                    </button>
+                    <button class="game-type-btn" data-type="jutsu">
+                        <span class="type-icon">⚡</span>
+                        <span class="type-name">Jutsu</span>
+                    </button>
+                    <button class="game-type-btn" data-type="eyes">
+                        <span class="type-icon">👁️</span>
+                        <span class="type-name">Ojos</span>
+                    </button>
+                    <button class="game-type-btn" data-type="relation">
+                        <span class="type-icon">🔗</span>
+                        <span class="type-name">Relacion</span>
+                    </button>
+                </div>
+
+                <div class="attempts-bar" id="attempts-bar">
+                    <div class="attempt-dot active"></div>
+                    <div class="attempt-dot"></div>
+                    <div class="attempt-dot"></div>
+                    <div class="attempt-dot"></div>
+                    <div class="attempt-dot"></div>
+                    <div class="attempt-dot"></div>
+                </div>
+
+                <div class="hint-buttons">
+                    <button class="hint-btn" id="hint-village" title="Pista Aldea">🏯</button>
+                    <button class="hint-btn" id="hint-clan" title="Pista Clan">👥</button>
+                    <button class="hint-btn" id="hint-rank" title="Pista Rango">⚔️</button>
+                    <button class="hint-btn" id="hint-element" title="Pista Elemento">🔥</button>
+                    <button class="hint-btn" id="hint-debut" title="Pista Estado">📺</button>
+                    <button class="hint-btn" id="hint-birthday" title="Pista Cumpleaños">🎂</button>
+                    <button class="hint-btn" id="hint-height" title="Pista Altura">📏</button>
+                    <button class="hint-btn" id="hint-tools" title="Pista Armas">🗡️</button>
+                </div>
+
+                <div class="character-preview">
+                    <div class="image-wrapper">
+                        <div class="image-container">
+                            <img id="character-image" src="" alt="Personaje">
+                            <div id="blur-overlay" class="blur-overlay"></div>
+                            <div id="question-mark" class="question-mark">?</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-section">
+                    <div class="input-wrapper">
+                        <input type="text" id="guess-input" placeholder="¿Quién es este ninja?" autocomplete="off"
+                            autofocus>
+                        <button id="guess-btn">📌</button>
+                    </div>
+                    <div id="suggestions" class="suggestions hidden"></div>
+                </div>
+
+                <div id="guesses-container">
+                    <div class="attributes-header">
+                        <div class="attr-label">Personaje</div>
+                        <div class="attr-label">Sexo</div>
+                        <div class="attr-label">Aldea</div>
+                        <div class="attr-label">Clan</div>
+                        <div class="attr-label">Rango</div>
+                        <div class="attr-label">Elemento</div>
+                        <div class="attr-label">Arco</div>
+                        <div class="attr-label">Estado</div>
+                    </div>
+                    <div class="attributes-header relation-header" style="display: none;">
+                        <div class="attr-label">Personaje</div>
+                        <div class="attr-label">Relacion</div>
+                        <div class="attr-label">Objetivo</div>
+                    </div>
+                    <div id="guesses-list" class="guesses-list"></div>
+                </div>
+            </div>
+
+            <div id="end-game-modal" class="end-game-modal hidden">
+                <div id="end-game" class="end-game">
+                    <div class="end-header">
+                        <h2 id="end-title">¡VICTORIA!</h2>
+                        <p id="end-subtitle"></p>
+                    </div>
+                    <div class="end-character-preview">
+                        <img id="answer-image" src="" alt="Personaje" class="end-character-img">
+                        <h3 id="answer-name">Ninja Seleccionado</h3>
+                    </div>
+                    <div class="guess-distribution" id="guess-distribution">
+                        <h4>Distribucion de Intentos</h4>
+                        <div class="distribution-bar" id="distribution-bar"></div>
+                    </div>
+                    <div class="share-section">
+                        <p id="share-text"></p>
+                        <button id="share-btn-end" class="share-btn">📤 Compartir</button>
+                    </div>
+                    <button id="play-again" class="play-again-btn">Siguiente →</button>
+                </div>
+            </div>
+        </main>
+
+        <div id="menu-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Menu</h2>
+                    <button class="close-btn" id="close-menu">×</button>
+                </div>
+                <div class="menu-options">
+                    <button class="menu-option" id="menu-stats">
+                        <span>📊</span> Estadisticas
+                    </button>
+                    <button class="menu-option" id="menu-howto">
+                        <span>❓</span> Como Jugar
+                    </button>
+                    <button class="menu-option" id="menu-credits">
+                        <span>💡</span> Creditos
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="stats-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>📊 Estadisticas</h2>
+                    <button class="close-btn" id="close-stats">×</button>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">🎮</div>
+                        <span class="stat-card-num" id="stat-played">0</span>
+                        <span class="stat-card-label">Jugadas</span>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">✅</div>
+                        <span class="stat-card-num" id="stat-win">0</span>
+                        <span class="stat-card-label">Ganadas</span>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🎯</div>
+                        <span class="stat-card-num" id="stat-pct">0%</span>
+                        <span class="stat-card-label">Efectividad</span>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🔥</div>
+                        <span class="stat-card-num" id="stat-streak">0</span>
+                        <span class="stat-card-label">Racha</span>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⭐</div>
+                        <span class="stat-card-num" id="stat-best">0</span>
+                        <span class="stat-card-label">Récord</span>
+                    </div>
+                    <div class="stat-card rank-card">
+                        <div class="stat-icon">🎖️</div>
+                        <span class="stat-card-num" id="stat-level">Estudiante V</span>
+                        <span class="stat-card-label">Rango Ninja</span>
+                    </div>
+                    <div class="stat-card lp-card">
+                        <div class="stat-icon">💎</div>
+                        <span class="stat-card-num" id="stat-lp-count">0 LP</span>
+                        <span class="stat-card-label">Puntos de Liga</span>
+                    </div>
+                </div>
+                <div class="stat-distribution">
+                    <h4>Distribucion de Intentos</h4>
+                    <div id="full-distribution"></div>
+                </div>
+                <div class="next-character">
+                    <p>Sig. Naruto DLE en:</p>
+                    <span id="modal-countdown">--:--:--</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="settings-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>⚙️ Ajustes</h2>
+                    <button class="close-btn" id="close-settings">×</button>
+                </div>
+                <div class="settings-list">
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <span class="setting-label">Modo Dificil</span>
+                            <span class="setting-desc">Las pistas reveladas deben ser usadas en siguientes
+                                intentos</span>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" id="hard-mode-toggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <span class="setting-label">Alto Contraste</span>
+                            <span class="setting-desc">Mejor visibilidad para daltonicos</span>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" id="contrast-toggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <span class="setting-label">Pistas Visuales</span>
+                            <span class="setting-desc">Mostrar imagen parcialmente revelada</span>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" id="visual-hints-toggle" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="danger-zone">
+                    <button class="danger-btn" id="reset-progress">Reiniciar Progreso</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="login-modal" class="modal">
+            <div class="modal-content login-modal-content">
+                <div class="login-icon">🥷</div>
+                <h2 class="login-title">Identidad Ninja</h2>
+                <p class="login-desc">Ingresa tu nombre shinobi para guardar tu progreso y competir en el ranking global.</p>
+                <div class="input-wrapper login-input-wrapper">
+                    <input type="text" id="username-input" placeholder="Escribe tu nombre..." maxlength="15" autocomplete="off">
+                </div>
+                <button id="save-username-btn" class="play-again-btn">Comenzar Misión</button>
+                <p class="login-hint">Mínimo 3 caracteres</p>
+            </div>
+        </div>
+
+        <div id="leaderboard-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>🏆 Ranking Global</h2>
+                    <button class="close-btn" id="close-leaderboard">×</button>
+                </div>
+                <div class="leaderboard-content" id="leaderboard-list">
+                    <div class="loading-mini">Cargando ninjas...</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="howto-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Como Jugar</h2>
+                    <button class="close-btn" id="close-howto">×</button>
+                </div>
+                <div class="howto-content">
+                    <p>Adivina el personaje oculto de Naruto en 6 intentos.</p>
+                    <div class="howto-section">
+                        <h4>🎯 Como Jugar</h4>
+                        <ul>
+                            <li>Cada intento revela pistas sobre el personaje</li>
+                            <li>Verde = Correcto</li>
+                            <li>Amarillo = Parcialmente correcto</li>
+                            <li>Rojo = Incorrecto</li>
+                        </ul>
+                    </div>
+                    <div class="howto-section">
+                        <h4>📅 Modo Diario</h4>
+                        <ul>
+                            <li>Un nuevo personaje cada dia</li>
+                            <li>Compartes resultados sin spoilers</li>
+                        </ul>
+                    </div>
+                    <div class="howto-section">
+                        <h4>♾️ Modo Infinito</h4>
+                        <ul>
+                            <li>Juega tantos personajes como quieras</li>
+                            <li>Suma puntos por cada victoria</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <p>Inspirado en Wordle • API: <a href="https://dattebayo-api.onrender.com/" target="_blank">Dattebayo</a>
+            </p>
+        </footer>
+    </div>
+
+    <script src="supabase-config.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>
