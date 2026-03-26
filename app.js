@@ -1,25 +1,25 @@
 const API_BASE = 'https://dattebayo-api.onrender.com';
 const MAX_ATTEMPTS = 6;
-const POINTS_PER_LEVEL = 100;
 
 const GAME_MODES = {
-    character: { name: 'Personaje', icon: '🥷', desc: 'Adivina el personaje' },
-    jutsu: { name: 'Jutsu', icon: '⚡', desc: 'Adivina el jutsu' },
-    eyes: { name: 'Ojos', icon: '👁️', desc: 'Adivina el Kekkei Genkai' },
-    relation: { name: 'Relacion', icon: '🔗', desc: 'Adivina la relacion' }
+    character: { name: 'Personaje', icon: '🥷' },
+    jutsu: { name: 'Jutsu', icon: '⚡' },
+    eyes: { name: 'Ojos', icon: '👁️' },
+    relation: { name: 'Relacion', icon: '🔗' }
 };
 
 const STATUS_UNLOCK_ATTEMPT = 3;
 
 const ACHIEVEMENTS = [
     { id: 'first_win', name: 'Primer Paso 🥷', desc: 'Gana tu primera partida', check: s => s.won >= 1 },
-    { id: 'streak_5', name: 'Racha de Fuego 🔥', desc: 'Consigue 5 victorias seguidas', check: s => s.streak >= 5 },
-    { id: 'total_10', name: 'Veterano 🏅', desc: 'Gana 10 partidas totales', check: s => s.won >= 10 },
-    { id: 'rank_jonin', name: 'Ascenso a Jōnin 📜', desc: 'Alcanza rango Jōnin', check: s => s.lp >= 300 }
+    { id: 'streak_5', name: 'Racha de Fuego 🔥', desc: '5 victorias seguidas', check: s => s.streak >= 5 },
+    { id: 'streak_10', name: 'Shinobi Dedicado 💪', desc: '10 victorias seguidas', check: s => s.streak >= 10 },
+    { id: 'total_10', name: 'Veterano 🏅', desc: 'Gana 10 partidas', check: s => s.won >= 10 },
+    { id: 'total_50', name: 'Legendario 🌟', desc: 'Gana 50 partidas', check: s => s.won >= 50 },
+    { id: 'speed_demon', name: 'Demasiado Rapido ⚡', desc: 'Gana en 2 intentos', check: s => s.distribution[0] + s.distribution[1] >= 1 },
+    { id: 'rank_jonin', name: 'Jōnin 📜', desc: 'Alcanza 300 LP', check: s => s.lp >= 300 },
+    { id: 'rank_kage', name: 'El Kage 👑', desc: 'Alcanza 3000 LP', check: s => s.lp >= 3000 }
 ];
-
-let unlockedAchievements = [];
-let achievementsShown = [];
 
 const LOCAL_IMAGES = {
     'Naruto Uzumaki': 'images/Naruto_Uzumaki.png',
@@ -33,30 +33,6 @@ const LOCAL_IMAGES = {
 
 const FALLBACK_IMAGE = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="#111" width="100" height="100"/><path d="M50 20c-8.3 0-15 6.7-15 15s6.7 15 15 15 15-6.7 15-15-6.7-15-15-15zM30 75c0-11 9-20 20-20s20 9 20 20v5H30v-5z" fill="#333"/></svg>');
 
-function cleanImageUrl(url) {
-    if (!url) return FALLBACK_IMAGE;
-    if (url.startsWith('images/') || url.startsWith('data:')) return url;
-    let cleanUrl = url;
-    if (url.includes('wikia.nocookie.net')) {
-        cleanUrl = url.split('/revision/')[0];
-    }
-    return `https://i0.wp.com/${cleanUrl.replace(/^https?:\/\//, '')}`;
-}
-
-function handleImageError(img) {
-    if (img.dataset.errorAttempted) {
-        img.src = FALLBACK_IMAGE;
-        return;
-    }
-    const currentSrc = img.src;
-    if (currentSrc.includes('.png')) {
-        img.dataset.errorAttempted = "true";
-        img.src = currentSrc.replace('.png', '.PNG');
-    } else {
-        img.src = FALLBACK_IMAGE;
-    }
-}
-
 const VILLAGE_ICONS = {
     'Konoha': '🏯', 'Konohagakure': '🏯', 'Suna': '🏜️', 'Sunagakure': '🏜️',
     'Kiri': '🌊', 'Kirigakure': '🌊', 'Kumo': '⚡', 'Kumogakure': '⚡',
@@ -64,11 +40,14 @@ const VILLAGE_ICONS = {
 };
 
 const CLAN_ICONS = {
-    'Uzumaki': '🔴', 'Uchiha': '🖤', 'Senju': '🌳', 'Hyuga': '👁️', 'None': '—'
+    'Uzumaki': '🔴', 'Uchiha': '🖤', 'Senju': '🌳', 'Hyuga': '👁️',
+    'Aburame': '🪲', 'Inuzuka': '🐺', 'Akimichi': '🐻', 'Yamanaka': '🌸',
+    'Nara': '🦌', 'Sarutobi': '🐒', 'Hatake': '⚔️', 'None': '—'
 };
 
 let allCharacters = [];
 let searchableCharacters = [];
+let searchableByName = new Map();
 let allJutsus = [];
 let allKekkeiGenkai = [];
 let targetCharacter = null;
@@ -88,6 +67,28 @@ let stats = { played: 0, won: 0, streak: 0, bestStreak: 0, lp: 0, distribution: 
 let hintsUsed = { village: false, clan: false, rank: false, element: false, debut: false, birthday: false, height: false, tools: false };
 let revealedHints = [];
 let toastTimeout = null;
+let debounceTimer = null;
+
+function cleanImageUrl(url) {
+    if (!url) return FALLBACK_IMAGE;
+    if (url.startsWith('images/') || url.startsWith('data:')) return url;
+    let cleanUrl = url;
+    if (url.includes('wikia.nocookie.net')) {
+        cleanUrl = url.split('/revision/')[0];
+    }
+    return `https://i0.wp.com/${cleanUrl.replace(/^https?:\/\//, '')}`;
+}
+
+function handleImageError(img) {
+    if (img.dataset.errorAttempted) { img.src = FALLBACK_IMAGE; return; }
+    const currentSrc = img.src;
+    if (currentSrc.includes('.png')) {
+        img.dataset.errorAttempted = "true";
+        img.src = currentSrc.replace('.png', '.PNG');
+    } else {
+        img.src = FALLBACK_IMAGE;
+    }
+}
 
 function loadStats() {
     const saved = localStorage.getItem('narutoDLE_stats');
@@ -230,9 +231,15 @@ function extractAttributes(char) {
     let imgSrc = cleanImageUrl(char.images?.[0]);
     if (LOCAL_IMAGES[char.name]) imgSrc = LOCAL_IMAGES[char.name];
 
-    const birthdate = personal.birthdate || {};
     let birthday = 'Desconocido';
-    if (birthdate && birthdate.day && birthdate.month) birthday = `${birthdate.day}/${birthdate.month}`;
+    if (personal.birthdate) {
+        const bd = personal.birthdate;
+        if (typeof bd === 'object' && (bd.day || bd.month)) {
+            birthday = `${bd.day || '?'}/${bd.month || '?'}`;
+        } else if (typeof bd === 'string' && bd !== 'Unknown') {
+            birthday = bd;
+        }
+    }
 
     const height = personal.height || {};
     let heightStr = 'Desconocido';
@@ -259,38 +266,37 @@ async function fetchCharacters() {
     const gameArea = document.getElementById('game-area');
 
     try {
-        // Intentar cargar desde cache primero
         const cached = localStorage.getItem('narutoDLE_characters');
         let data;
         
         if (cached) {
             const parsed = JSON.parse(cached);
             const cacheAge = Date.now() - parsed.timestamp;
-            // Cache valido por 24 horas
             if (cacheAge < 24 * 60 * 60 * 1000) {
                 data = parsed.data;
                 loading.querySelector('p').textContent = 'Cargando desde cache...';
             }
         }
         
-        // Si no hay cache, descargar de la API
         if (!data) {
-            loading.querySelector('p').textContent = 'Descargando personajes (esto puede tardar)...';
+            loading.querySelector('p').textContent = 'Descargando personajes...';
             const response = await fetch(`${API_BASE}/characters?limit=1500`);
             if (!response.ok) throw new Error('Error loading');
             data = await response.json();
-            
-            // Guardar en cache
-            localStorage.setItem('narutoDLE_characters', JSON.stringify({
-                data: data,
-                timestamp: Date.now()
-            }));
+            localStorage.setItem('narutoDLE_characters', JSON.stringify({ data, timestamp: Date.now() }));
         }
 
         allCharacters = data.characters.filter(c => c.images?.length > 0 && c.name).map(c => ({ ...c, attrs: extractAttributes(c) }))
             .filter(c => c.attrs.debutArc !== 'Unknown');
+        
         searchableCharacters = data.characters.filter(c => c.name).map(c => ({ ...c, attrs: extractAttributes(c) }))
             .filter(c => c.attrs.debutArc !== 'Unknown');
+
+        // Build search index for fast lookup
+        searchableByName = new Map();
+        searchableCharacters.forEach(c => {
+            searchableByName.set(c.name.toLowerCase(), c);
+        });
 
         allJutsus = [];
         const jutsuSet = new Set();
@@ -331,6 +337,7 @@ async function fetchCharacters() {
         checkShinobiIdentity();
 
     } catch (err) {
+        console.error('Error loading:', err);
         loading.classList.add('hidden');
         error.classList.remove('hidden');
     }
@@ -385,7 +392,10 @@ function selectTarget() {
 function setupEventListeners() {
     document.getElementById('guess-btn').addEventListener('click', makeGuess);
     document.getElementById('guess-input').addEventListener('keypress', e => { if (e.key === 'Enter') makeGuess(); });
-    document.getElementById('guess-input').addEventListener('input', e => handleInput(e.target.value));
+    document.getElementById('guess-input').addEventListener('input', e => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => handleInput(e.target.value), 150);
+    });
     document.getElementById('play-again').addEventListener('click', nextRound);
     document.getElementById('retry-btn').addEventListener('click', () => location.reload());
     document.getElementById('share-btn-end').addEventListener('click', shareResults);
@@ -432,9 +442,9 @@ function setupEventListeners() {
     document.getElementById('menu-stats').addEventListener('click', () => { toggleModal('menu'); toggleModal('stats'); });
     document.getElementById('menu-howto').addEventListener('click', () => { toggleModal('menu'); toggleModal('howto'); });
     document.getElementById('menu-credits').addEventListener('click', () => alert('Naruto DLE - Gracias por jugar!'));
+    document.getElementById('achievements-btn').addEventListener('click', showAchievements);
 
     document.getElementById('save-username-btn').addEventListener('click', saveShinobiIdentity);
-    document.getElementById('achievements-btn').addEventListener('click', () => showAchievements());
 
     const charImg = document.getElementById('character-image');
     charImg.style.cursor = 'zoom-in';
@@ -445,6 +455,13 @@ function setupEventListeners() {
         modal.innerHTML = `<button class="close-zoom">×</button><img src="${targetCharacter.attrs.image}" alt="${targetCharacter.name}" referrerpolicy="no-referrer">`;
         document.body.appendChild(modal);
         modal.addEventListener('click', () => modal.remove());
+    });
+
+    document.addEventListener('click', e => {
+        const suggestions = document.getElementById('suggestions');
+        if (!e.target.closest('.input-section')) {
+            suggestions.classList.add('hidden');
+        }
     });
 }
 
@@ -476,7 +493,15 @@ function setupModals() {
     document.getElementById('contrast-toggle').addEventListener('change', e => document.body.classList.toggle('high-contrast', e.target.checked));
     document.getElementById('visual-hints-toggle').checked = visualHints;
     document.getElementById('visual-hints-toggle').addEventListener('change', e => { visualHints = e.target.checked; localStorage.setItem('narutoDLE_visualHints', visualHints); updateBlurOverlay(); });
-    document.getElementById('reset-progress').addEventListener('click', () => { if (confirm('Reiniciar progreso?')) { localStorage.removeItem('narutoDLE_stats'); stats = { played: 0, won: 0, streak: 0, bestStreak: 0, distribution: [0, 0, 0, 0, 0, 0] }; updateStatsDisplay(); toggleModal('settings'); } });
+    document.getElementById('reset-progress').addEventListener('click', () => {
+        if (confirm('Reiniciar progreso?')) {
+            localStorage.removeItem('narutoDLE_stats');
+            stats = { played: 0, won: 0, streak: 0, bestStreak: 0, distribution: [0, 0, 0, 0, 0, 0] };
+            updateStatsDisplay();
+            toggleModal('settings');
+            showToast('Progreso reiniciado', 'success');
+        }
+    });
     document.getElementById('leaderboard-btn').addEventListener('click', () => toggleModal('leaderboard'));
 }
 
@@ -488,20 +513,15 @@ function toggleModal(name) {
 }
 
 function showAchievements() {
-    const modal = document.getElementById('achievements-modal') || document.createElement('div');
+    const modal = document.getElementById('achievements-modal');
     const list = document.getElementById('achievements-list');
-    if (!modal.id) {
-        modal.id = 'achievements-modal';
-        modal.className = 'modal';
-        document.querySelector('#app').appendChild(modal);
-    }
     if (list) {
         list.innerHTML = ACHIEVEMENTS.map(ach => {
             const unlocked = unlockedAchievements.includes(ach.id);
             return `<div class="achievement-card ${unlocked ? 'unlocked' : 'locked'}"><div class="achievement-icon">${unlocked ? '🏆' : '🔒'}</div><div class="achievement-info"><h4>${ach.name}</h4><p>${ach.desc}</p></div>${unlocked ? '<span class="achievement-check">✓</span>' : ''}</div>`;
         }).join('');
     }
-    modal.classList.remove('hidden');
+    if (modal) modal.classList.remove('hidden');
 }
 
 function checkShinobiIdentity() {
@@ -539,11 +559,78 @@ async function loadLeaderboard() {
     }).join('');
 }
 
+// Normalize string for search (remove accents, to lowercase)
+function normalizeStr(str) {
+    return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
 function handleInput(value) {
     const suggestions = document.getElementById('suggestions');
     if (value.length < 1) { suggestions.classList.add('hidden'); return; }
+    if (value.length < 2) return;
 
-    let results = getSuggestions(value);
+    const results = getSuggestions(value);
+    suggestions.classList.remove('hidden');
+
+    if (results.length === 0) {
+        suggestions.innerHTML = '<div class="suggestion-item" style="justify-content: center; color: var(--text-secondary);">No hay coincidencias</div>';
+        return;
+    }
+
+    let html = '';
+    if (currentGameType === 'jutsu') {
+        html = results.map(j => `<div class="suggestion-item" data-name="${j.name}"><span class="suggestion-icon">⚡</span><span class="suggestion-name">${j.name}</span><span class="char-tag">${j.characterName}</span></div>`).join('');
+    } else if (currentGameType === 'eyes') {
+        html = results.map(k => `<div class="suggestion-item" data-name="${k.name}"><span class="suggestion-icon">👁️</span><span class="suggestion-name">${k.name}</span><span class="char-tag">${k.characterName}</span></div>`).join('');
+    } else {
+        html = results.map(c => {
+            const img = LOCAL_IMAGES[c.name] || c.attrs.image || FALLBACK_IMAGE;
+            return `<div class="suggestion-item" data-name="${c.name}"><img class="suggestion-img" src="${img}" referrerpolicy="no-referrer" onerror="handleImageError(this)"><span class="suggestion-name">${c.name}</span></div>`;
+        }).join('');
+    }
+
+    suggestions.innerHTML = html;
+
+    suggestions.querySelectorAll('.suggestion-item').forEach(item => {
+        item.addEventListener('click', () => {
+            document.getElementById('guess-input').value = item.dataset.name;
+            suggestions.classList.add('hidden');
+            makeGuess();
+        });
+    });
+}
+
+function getSuggestions(query) {
+    const q = normalizeStr(query);
+    
+    if (currentGameType === 'jutsu') {
+        return allJutsus
+            .filter(j => normalizeStr(j.name).includes(q))
+            .sort((a, b) => {
+                const aStarts = normalizeStr(a.name).startsWith(q);
+                const bStarts = normalizeStr(b.name).startsWith(q);
+                if (aStarts && !bStarts) return -1;
+                if (!aStarts && bStarts) return 1;
+                return a.name.localeCompare(b.name);
+            })
+            .slice(0, 10);
+    }
+    
+    if (currentGameType === 'eyes') {
+        return allKekkeiGenkai
+            .filter(k => normalizeStr(k.name).includes(q))
+            .sort((a, b) => {
+                const aStarts = normalizeStr(a.name).startsWith(q);
+                const bStarts = normalizeStr(b.name).startsWith(q);
+                if (aStarts && !bStarts) return -1;
+                if (!aStarts && bStarts) return 1;
+                return a.name.localeCompare(b.name);
+            })
+            .slice(0, 10);
+    }
+
+    let results = searchableCharacters
+        .filter(c => normalizeStr(c.name).includes(q));
 
     if (currentGameType === 'character') {
         results = results.filter(c => {
@@ -556,29 +643,19 @@ function handleInput(value) {
         });
     }
 
-    if (guessedNames.length > 0) results = results.filter(c => !guessedNames.includes(c.name));
-
-    suggestions.classList.remove('hidden');
-    if (results.length === 0) { suggestions.innerHTML = '<div class="suggestion-item" style="justify-content: center; color: var(--text-secondary);">No hay coincidencias</div>'; return; }
-
-    if (currentGameType === 'jutsu') {
-        suggestions.innerHTML = results.slice(0, 8).map(j => `<div class="suggestion-item" data-name="${j.name}"><span>⚡</span><span>${j.name}</span><span class="char-tag">${j.characterName}</span></div>`).join('');
-    } else if (currentGameType === 'eyes') {
-        suggestions.innerHTML = results.slice(0, 8).map(k => `<div class="suggestion-item" data-name="${k.name}"><span>👁️</span><span>${k.name}</span><span class="char-tag">${k.characterName}</span></div>`).join('');
-    } else {
-        suggestions.innerHTML = results.slice(0, 8).map(c => `<div class="suggestion-item" data-name="${c.name}"><img src="${c.attrs.image}" referrerpolicy="no-referrer" onerror="handleImageError(this)"><span>${c.name}</span></div>`).join('');
+    if (guessedNames.length > 0) {
+        results = results.filter(c => !guessedNames.includes(c.name));
     }
 
-    suggestions.querySelectorAll('.suggestion-item').forEach(item => {
-        item.addEventListener('click', () => { document.getElementById('guess-input').value = item.dataset.name; suggestions.classList.add('hidden'); makeGuess(); });
-    });
-}
-
-function getSuggestions(query) {
-    const q = query.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    if (currentGameType === 'jutsu') return allJutsus.filter(j => j.name.toLowerCase().includes(q)).slice(0, 8);
-    if (currentGameType === 'eyes') return allKekkeiGenkai.filter(k => k.name.toLowerCase().includes(q)).slice(0, 8);
-    return searchableCharacters.filter(c => c.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(q)).slice(0, 8);
+    return results
+        .sort((a, b) => {
+            const aStarts = normalizeStr(a.name).startsWith(q);
+            const bStarts = normalizeStr(b.name).startsWith(q);
+            if (aStarts && !bStarts) return -1;
+            if (!aStarts && bStarts) return 1;
+            return a.name.localeCompare(b.name);
+        })
+        .slice(0, 10);
 }
 
 function makeGuess() {
@@ -618,7 +695,7 @@ function makeGuess() {
     }
 
     if (currentGameType === 'relation') {
-        const guessedChar = allCharacters.find(c => c.name.toLowerCase() === name.toLowerCase()) || searchableCharacters.find(c => c.name.toLowerCase() === name.toLowerCase());
+        const guessedChar = searchableByName.get(name.toLowerCase());
         if (!guessedChar) { showToast('Personaje no encontrado', 'error'); return; }
         if (guessedNames.includes(guessedChar.name)) { showToast('Ya intentado', 'warning'); input.value = ''; return; }
         
@@ -639,7 +716,7 @@ function makeGuess() {
         return;
     }
 
-    let guessed = allCharacters.find(c => c.name.toLowerCase() === name.toLowerCase()) || searchableCharacters.find(c => c.name.toLowerCase() === name.toLowerCase());
+    const guessed = searchableByName.get(name.toLowerCase());
     if (!guessed) { showToast('Personaje no encontrado', 'error'); return; }
     if (guessedNames.includes(guessed.name)) { showToast('Ya intentado', 'warning'); input.value = ''; return; }
 
@@ -682,6 +759,9 @@ function renderGuessRow(guess, target) {
     cells.forEach((cell, i) => {
         const div = document.createElement('div');
         const isCorrect = !cell.locked && cell.val === cell.target;
+        const isPartial = !cell.locked && !isCorrect && cell.val !== 'Unknown' && cell.target !== 'Unknown' && 
+                         (cell.val.includes(cell.target) || cell.target.includes(cell.val) || 
+                          (cell.val === 'Vivo' && cell.target === 'Vivo'));
         div.className = `guess-cell ${cell.className || (cell.locked ? 'locked' : (isCorrect ? 'correct' : 'incorrect'))}`;
         div.innerHTML = cell.html || cell.val;
         div.style.animationDelay = `${i * 0.1}s`;
@@ -690,6 +770,7 @@ function renderGuessRow(guess, target) {
     });
 
     list.prepend(row);
+    row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 function renderGuessRowJutsu(guessed, target, isCorrect) {
@@ -725,7 +806,7 @@ function revealHint(type) {
     const labels = { village: 'Aldea', clan: 'Clan', rank: 'Rango', element: 'Elemento', debut: 'Estado', birthday: 'Cumple', height: 'Altura', tools: 'Armas' };
     const values = { village: attrs.village, clan: attrs.clan, rank: attrs.rank, element: attrs.element, debut: attrs.status, birthday: attrs.birthday, height: attrs.height + ' cm', tools: attrs.tools };
     const value = values[type];
-    if (!value || value === 'Desconocido') { showToast('No hay info', 'info'); return; }
+    if (!value || value === 'Desconocido') { showToast('No hay info disponible', 'info'); return; }
 
     hintsUsed[type] = true;
     revealedHints.push({ type, value });
@@ -745,9 +826,7 @@ function updateDisplay() {
     const image = document.getElementById('character-image');
     const qMark = document.getElementById('question-mark');
 
-    if (currentGameType === 'jutsu' || currentGameType === 'eyes' || currentGameType === 'relation') {
-        image.src = targetCharacter.attrs.image;
-    } else {
+    if (targetCharacter) {
         image.src = targetCharacter.attrs.image;
     }
 
@@ -801,8 +880,10 @@ function endGame(won) {
     document.getElementById('end-game-modal').classList.remove('hidden');
     const emoji = currentGameType === 'jutsu' ? '⚡' : currentGameType === 'eyes' ? '👁️' : currentGameType === 'relation' ? '🔗' : '🍥';
     document.getElementById('end-title').textContent = won ? `¡VICTORIA! ${emoji}` : '¡DERROTA! 💔';
-    document.getElementById('end-subtitle').textContent = won ? `Adivinado en ${attempts} intentos` : 'Mejor suerte mañana';
+    document.getElementById('end-subtitle').textContent = won ? `Adivinado en ${attempts} ${attempts === 1 ? 'intento' : 'intentos'}` : 'Mejor suerte mañana';
     document.getElementById('end-subtitle').innerHTML += `<br><span style="color: ${won ? '#3ef07a' : '#ff4b4b'}">${won ? '+' : ''}${lpGained} LP</span>`;
+    const rank = calculateRank(stats.lp);
+    document.getElementById('end-subtitle').innerHTML += `<br><span style="color: ${rank.color}">Rango: ${rank.name}</span>`;
 
     let answerText = targetCharacter.name;
     if (currentGameType === 'relation' && currentGuess) {
@@ -819,7 +900,10 @@ function generateShareText(won) {
     const emoji = currentGameType === 'jutsu' ? '⚡' : currentGameType === 'eyes' ? '👁️' : currentGameType === 'relation' ? '🔗' : '🍥';
     const modeName = currentGameType === 'jutsu' ? 'Jutsu' : currentGameType === 'eyes' ? 'Ojos' : currentGameType === 'relation' ? 'Relacion' : 'Personaje';
     const lines = [`Naruto DLE - ${modeName} ${new Date().toLocaleDateString()}`, ''];
-    for (let i = 0; i < MAX_ATTEMPTS; i++) lines.push(won && i < attempts ? '🟩' : '⬜');
+    for (let i = 0; i < MAX_ATTEMPTS; i++) {
+        if (i < attempts) lines.push('🟩');
+        else lines.push('⬜');
+    }
     lines.push('', `${emoji} ${won ? attempts : 'X'}/${MAX_ATTEMPTS}`);
     document.getElementById('share-text').textContent = lines.join('\n');
 }
@@ -827,19 +911,33 @@ function generateShareText(won) {
 function updateMiniDistribution() {
     const bar = document.getElementById('distribution-bar');
     const max = Math.max(...stats.distribution, 1);
-    bar.innerHTML = stats.distribution.map((count, i) => `<div class="dist-item"><span class="dist-num">${i + 1}</span><div class="dist-bar ${attempts === i + 1 && gameOver ? 'highlight' : ''}" style="width: ${Math.max(Math.round((count / max) * 100), 8)}%">${count}</div></div>`).join('');
+    bar.innerHTML = stats.distribution.map((count, i) => {
+        const pct = Math.max(Math.round((count / max) * 100), 8);
+        const isCurrent = attempts === i + 1 && gameOver;
+        return `<div class="dist-item"><span class="dist-num">${i + 1}</span><div class="dist-bar ${isCurrent ? 'highlight' : ''}" style="width: ${pct}%">${count}</div></div>`;
+    }).join('');
 }
 
 function updateDistributionChart() {
     const container = document.getElementById('full-distribution');
     const max = Math.max(...stats.distribution, 1);
-    container.innerHTML = stats.distribution.map((count, i) => `<div class="dist-item"><span class="dist-num">${i + 1}</span><div class="dist-bar" style="width: ${Math.max(Math.round((count / max) * 100), 8)}%">${count}</div></div>`).join('');
+    container.innerHTML = stats.distribution.map((count, i) => {
+        const pct = Math.max(Math.round((count / max) * 100), 8);
+        return `<div class="dist-item"><span class="dist-num">${i + 1}</span><div class="dist-bar" style="width: ${pct}%">${count}</div></div>`;
+    }).join('');
 }
 
 function shareResults() {
     const text = document.getElementById('share-text').textContent;
-    if (navigator.share) navigator.share({ text });
-    else navigator.clipboard.writeText(text).then(() => { const btn = document.getElementById('share-btn-end'); btn.textContent = '¡Copiado!'; setTimeout(() => btn.textContent = '📤 Compartir', 2000); });
+    if (navigator.share) {
+        navigator.share({ text }).catch(() => {});
+    } else {
+        navigator.clipboard.writeText(text).then(() => {
+            const btn = document.getElementById('share-btn-end');
+            btn.textContent = '¡Copiado!';
+            setTimeout(() => btn.textContent = '📤 Compartir', 2000);
+        });
+    }
 }
 
 function resetGame() {
@@ -855,7 +953,11 @@ function resetGame() {
     document.getElementById('question-mark').style.display = '';
 
     const originalIcons = { 'hint-village': '🏯', 'hint-clan': '👥', 'hint-rank': '⚔️', 'hint-element': '🔥', 'hint-debut': '📺', 'hint-birthday': '🎂', 'hint-height': '📏', 'hint-tools': '🗡️' };
-    document.querySelectorAll('.hint-btn').forEach(btn => { btn.classList.remove('revealed'); btn.disabled = false; if (originalIcons[btn.id]) btn.innerHTML = originalIcons[btn.id]; });
+    document.querySelectorAll('.hint-btn').forEach(btn => {
+        btn.classList.remove('revealed');
+        btn.disabled = false;
+        if (originalIcons[btn.id]) btn.innerHTML = originalIcons[btn.id];
+    });
 
     selectTarget();
     updateDisplay();
