@@ -21,6 +21,8 @@ const ACHIEVEMENTS = [
     { id: 'rank_kage', name: 'El Kage 👑', desc: 'Alcanza 3000 LP', check: s => s.lp >= 3000 }
 ];
 
+let unlockedAchievements = [];
+
 const LOCAL_IMAGES = {
     'Naruto Uzumaki': 'images/Naruto_Uzumaki.png',
     'Sasuke Uchiha': 'images/Sasuke_Uchiha.png',
@@ -599,14 +601,17 @@ function handleInput(value) {
 
     // Cargar imágenes en background
     suggestions.querySelectorAll('.suggestion-item[data-img]').forEach(item => {
+        const placeholder = item.querySelector('.suggestion-img-placeholder');
+        if (!placeholder) return;
+        
         const img = new Image();
         img.onload = () => {
-            const placeholder = item.querySelector('.suggestion-img-placeholder');
-            if (placeholder) {
-                placeholder.outerHTML = `<img class="suggestion-img" src="${item.dataset.img}" referrerpolicy="no-referrer">`;
-            }
+            placeholder.outerHTML = `<img class="suggestion-img" src="${item.dataset.img}" referrerpolicy="no-referrer">`;
         };
-        img.onerror = () => {};
+        img.onerror = () => {
+            placeholder.textContent = '❓';
+            placeholder.style.opacity = '0.3';
+        };
         img.src = item.dataset.img;
     });
 
