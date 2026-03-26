@@ -585,13 +585,30 @@ function handleInput(value) {
     } else if (currentGameType === 'eyes') {
         html = results.map(k => `<div class="suggestion-item" data-name="${k.name}"><span class="suggestion-icon">👁️</span><span class="suggestion-name">${k.name}</span><span class="char-tag">${k.characterName}</span></div>`).join('');
     } else {
+        // Mostrar nombre inmediatamente, cargar imágenes en background
         html = results.map(c => {
             const img = LOCAL_IMAGES[c.name] || c.attrs.image || FALLBACK_IMAGE;
-            return `<div class="suggestion-item" data-name="${c.name}"><img class="suggestion-img" src="${img}" referrerpolicy="no-referrer" onerror="handleImageError(this)"><span class="suggestion-name">${c.name}</span></div>`;
+            return `<div class="suggestion-item" data-name="${c.name}" data-img="${img}">
+                <div class="suggestion-img-placeholder">🥷</div>
+                <span class="suggestion-name">${c.name}</span>
+            </div>`;
         }).join('');
     }
 
     suggestions.innerHTML = html;
+
+    // Cargar imágenes en background
+    suggestions.querySelectorAll('.suggestion-item[data-img]').forEach(item => {
+        const img = new Image();
+        img.onload = () => {
+            const placeholder = item.querySelector('.suggestion-img-placeholder');
+            if (placeholder) {
+                placeholder.outerHTML = `<img class="suggestion-img" src="${item.dataset.img}" referrerpolicy="no-referrer">`;
+            }
+        };
+        img.onerror = () => {};
+        img.src = item.dataset.img;
+    });
 
     suggestions.querySelectorAll('.suggestion-item').forEach(item => {
         item.addEventListener('click', () => {
