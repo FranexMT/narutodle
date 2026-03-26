@@ -394,7 +394,7 @@ function setupEventListeners() {
     document.getElementById('guess-input').addEventListener('keypress', e => { if (e.key === 'Enter') makeGuess(); });
     document.getElementById('guess-input').addEventListener('input', e => {
         clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => handleInput(e.target.value), 150);
+        debounceTimer = setTimeout(() => handleInput(e.target.value), 50);
     });
     document.getElementById('play-again').addEventListener('click', nextRound);
     document.getElementById('retry-btn').addEventListener('click', () => location.reload());
@@ -532,7 +532,10 @@ function checkShinobiIdentity() {
         document.getElementById('login-modal').classList.add('hidden');
         syncPlayer(stats, shinobiName);
     } else {
-        document.getElementById('login-modal').classList.remove('hidden');
+        // Solo mostrar modal si no tiene sesion
+        setTimeout(() => {
+            document.getElementById('login-modal').classList.remove('hidden');
+        }, 500);
     }
 }
 
@@ -567,7 +570,6 @@ function normalizeStr(str) {
 function handleInput(value) {
     const suggestions = document.getElementById('suggestions');
     if (value.length < 1) { suggestions.classList.add('hidden'); return; }
-    if (value.length < 2) return;
 
     const results = getSuggestions(value);
     suggestions.classList.remove('hidden');
@@ -629,11 +631,10 @@ function getSuggestions(query) {
             .slice(0, 10);
     }
 
-    let results = searchableCharacters
-        .filter(c => normalizeStr(c.name).includes(q));
-
+    // Filter por categoria primero
+    let pool = searchableCharacters;
     if (currentGameType === 'character') {
-        results = results.filter(c => {
+        pool = pool.filter(c => {
             if (gameCategory === 'akatsuki') return (c.affiliation || []).some(a => a.includes('Akatsuki'));
             if (gameCategory === 'classic') return c.attrs.debutArc === 'Naruto';
             if (gameCategory === 'shippuden') return c.attrs.debutArc === 'Shippuden';
@@ -643,17 +644,31 @@ function getSuggestions(query) {
         });
     }
 
+    // Filter por ya adivinados
     if (guessedNames.length > 0) {
-        results = results.filter(c => !guessedNames.includes(c.name));
+        pool = pool.filter(c => !guessedNames.includes(c.name));
     }
+
+    // Buscar - priorizar los que empiezan con la letra
+    const results = pool.filter(c => normalizeStr(c.name).includes(q));
 
     return results
         .sort((a, b) => {
-            const aStarts = normalizeStr(a.name).startsWith(q);
-            const bStarts = normalizeStr(b.name).startsWith(q);
+            const aName = normalizeStr(a.name);
+            const bName = normalizeStr(b.name);
+            const aStarts = aName.startsWith(q);
+            const bStarts = bName.startsWith(q);
+            const aExact = aName === q;
+            const bExact = bName === q;
+            
+            // Exact match primero
+            if (aExact && !bExact) return -1;
+            if (!aExact && bExact) return 1;
+            // Que empiecen con la letra
             if (aStarts && !bStarts) return -1;
             if (!aStarts && bStarts) return 1;
-            return a.name.localeCompare(b.name);
+            // Alfabético
+            return aName.localeCompare(bName);
         })
         .slice(0, 10);
 }
