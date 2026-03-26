@@ -1,387 +1,662 @@
 <!DOCTYPE html>
-<html lang="es">
+<html class="dark" lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Naruto DLE - Adivina el Personaje</title>
+
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Bebas+Neue&display=swap"
-        rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
-    <link rel="icon"
-        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2280%22>🍥</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;900&family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Material Symbols Outlined -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-secondary": "#690006",
+                        "secondary-container": "#a90111",
+                        "surface-dim": "#131313",
+                        "surface": "#131313",
+                        "surface-container-highest": "#353534",
+                        "surface-tint": "#ffb86f",
+                        "on-surface-variant": "#dbc2ad",
+                        "background": "#131313",
+                        "on-background": "#e5e2e1",
+                        "on-surface": "#e5e2e1",
+                        "on-primary-container": "#653a00",
+                        "primary": "#ffc082",
+                        "primary-fixed": "#ffdcbd",
+                        "primary-fixed-dim": "#ffb86f",
+                        "surface-container-high": "#2a2a2a",
+                        "surface-container-lowest": "#0e0e0e",
+                        "primary-container": "#ff9900",
+                        "surface-container": "#201f1f",
+                        "surface-variant": "#353534",
+                        "outline": "#a38d7a",
+                        "surface-container-low": "#1c1b1b",
+                        "on-primary": "#4a2800",
+                        "outline-variant": "#554434",
+                        "on-secondary-container": "#ffb3ab",
+                        "error": "#ffb4ab",
+                        "tertiary": "#aecfff",
+                        "tertiary-container": "#79b5ff",
+                        "success": "#3ef07a",
+                        "warning": "#facc15"
+                    },
+                    fontFamily: {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"]
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Custom Styles -->
+    <style>
+        .chakra-glow {
+            background: radial-gradient(circle at center, rgba(255, 153, 0, 0.08) 0%, transparent 70%);
+        }
+        .nine-tails-smoke {
+            background-image: radial-gradient(circle at 50% 50%, rgba(255, 153, 0, 0.03) 0%, transparent 50%);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .hidden { display: none !important; }
+
+        /* Toast */
+        .toast-container { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); z-index: 100; pointer-events: none; }
+        .toast { background: #2a2a2a; color: white; padding: 12px 24px; border-radius: 12px; font-weight: 600; box-shadow: 0 10px 40px rgba(0,0,0,0.5); opacity: 0; transform: translateY(-20px); transition: all 0.3s ease; }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast-success { background: #1b5e20; border: 1px solid #3ef07a; }
+        .toast-error { background: #b71c1c; border: 1px solid #ff4b4b; }
+        .toast-warning { background: #f57f17; }
+        .toast-achievement { background: linear-gradient(135deg, #ff9900, #ff6600); }
+
+        /* Blur Overlay */
+        .blur-overlay {
+            position: absolute; inset: 0;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(30px);
+            transition: all 0.5s ease;
+            border-radius: 9999px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .blur-overlay.revealed { backdrop-filter: blur(0); background: transparent; }
+        .blur-overlay.level-1 { backdrop-filter: blur(25px); }
+        .blur-overlay.level-2 { backdrop-filter: blur(20px); }
+        .blur-overlay.level-3 { backdrop-filter: blur(15px); }
+        .blur-overlay.level-4 { backdrop-filter: blur(10px); }
+        .blur-overlay.level-5 { backdrop-filter: blur(5px); }
+
+        /* Guess cells */
+        .guess-cell.correct { background: rgba(62, 240, 122, 0.15); border-color: #3ef07a !important; color: #3ef07a; }
+        .guess-cell.incorrect { background: rgba(255, 75, 75, 0.1); border-color: #ff4b4b !important; }
+        .guess-cell.partial { background: rgba(250, 204, 21, 0.15); border-color: #facc15 !important; }
+        .guess-cell.locked { opacity: 0.4; }
+
+        /* Modal */
+        .modal-backdrop {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(10px);
+            z-index: 60;
+            display: flex; align-items: center; justify-content: center;
+            padding: 16px;
+        }
+        .modal-content {
+            background: #1c1b1b;
+            border: 1px solid #353534;
+            border-radius: 24px;
+            max-width: 480px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        /* Guess row animations */
+        .guess-row {
+            animation: slideIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Attempt dots */
+        .attempt-dot { width: 12px; height: 12px; border-radius: 50%; background: #353534; transition: all 0.3s ease; }
+        .attempt-dot.active { background: #ff9900; box-shadow: 0 0 15px rgba(255, 153, 0, 0.5); transform: scale(1.3); }
+        .attempt-dot.used { background: #554434; transform: scale(0.8); }
+
+        /* Hint buttons */
+        .hint-btn { transition: all 0.3s ease; }
+        .hint-btn.revealed { background: rgba(255, 153, 0, 0.2); border-color: #ff9900; color: #ff9900; }
+        .hint-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* Mode/Category/Game Type buttons */
+        .mode-btn.active, .category-btn.active, .game-type-btn.active {
+            background: #ff9900 !important;
+            color: #1c1b1b !important;
+            font-weight: 700;
+        }
+
+        /* Distribution bar */
+        .dist-bar { background: #ff9900; border-radius: 4px; padding: 2px 8px; font-size: 12px; transition: all 0.3s; }
+        .dist-bar.highlight { background: #ffb86f; font-weight: bold; }
+
+        /* Suggestion items */
+        .suggestion-item { padding: 12px; cursor: pointer; border-bottom: 1px solid #353534; transition: background 0.2s; }
+        .suggestion-item:hover { background: #2a2a2a; }
+        .suggestion-item:last-child { border-bottom: none; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #353534; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #554434; }
+
+        /* Zoom modal */
+        .image-zoom-modal {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.9);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 100;
+        }
+        .image-zoom-modal img { max-width: 90%; max-height: 90%; object-fit: contain; border-radius: 16px; }
+        .close-zoom { position: absolute; top: 20px; right: 20px; color: white; font-size: 32px; background: none; border: none; cursor: pointer; }
+    </style>
+
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2280%22>🍥</text></svg>">
+
+    <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
-<body>
-    <div id="app">
-        <header class="header">
-            <div class="header-left">
-                <button class="menu-btn" id="menu-btn">☰</button>
-                <h1>🍥 <span>NARUTO</span>DLE</h1>
-            </div>
-            <div class="header-right">
-                <button class="header-btn" id="leaderboard-btn" title="Ranking Global">🏆</button>
-                <button class="header-btn" id="stats-btn" title="Estadisticas">📊</button>
-                <button class="header-btn" id="settings-btn" title="Ajustes">⚙️</button>
-                <button class="header-btn" id="achievements-btn" title="Logros">🏆</button>
-            </div>
-        </header>
+<body class="bg-surface text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container min-h-screen overflow-x-hidden">
 
-        <div class="mode-selector" id="mode-selector">
-            <button class="mode-btn active" data-mode="daily">
-                <span class="mode-icon">📅</span>
-                <span class="mode-name">Diario</span>
-            </button>
-            <button class="mode-btn" data-mode="infinite">
-                <span class="mode-icon">♾️</span>
-                <span class="mode-name">Infinito</span>
-            </button>
-            <button class="mode-btn" data-mode="hard">
-                <span class="mode-icon">💀</span>
-                <span class="mode-name">Dificil</span>
-            </button>
-        </div>
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
 
-        <div class="category-selector" id="category-selector">
-            <button class="category-btn active" data-category="all">Todos</button>
-            <button class="category-btn" data-category="akatsuki">☠️ Akatsuki</button>
-            <button class="category-btn" data-category="classic">📺 Naruto</button>
-            <button class="category-btn" data-category="shippuden">🌀 Shippuden</button>
-            <button class="category-btn" data-category="war">⚔️ Guerra</button>
-            <button class="category-btn" data-category="boruto">🌸 Boruto</button>
-        </div>
-
-        <div class="stats-bar">
-            <div class="stat-box">
-                <span class="stat-number" id="streak-count">0</span>
-                <span class="stat-text">Racha</span>
+    <!-- TopAppBar -->
+    <header class="bg-neutral-950/80 backdrop-blur-xl border-b border-orange-500/10 shadow-[0_4px_20px_rgba(255,153,0,0.1)] fixed top-0 w-full z-50">
+        <div class="flex justify-between items-center px-4 md:px-6 h-16 w-full max-w-2xl mx-auto">
+            <div class="flex items-center gap-3">
+                <button id="menu-btn" class="text-neutral-400 hover:text-orange-400 transition-colors active:scale-95 duration-200">
+                    <span class="material-symbols-outlined">menu</span>
+                </button>
+                <h1 class="font-headline font-black uppercase tracking-widest text-xl md:text-2xl text-orange-500">
+                    <span class="text-white">NARUTO</span>DLE
+                </h1>
             </div>
-            <div class="stat-box">
-                <span class="stat-number" id="best-streak">0</span>
-                <span class="stat-text">Mejor Racha</span>
-            </div>
-            <div class="stat-box">
-                <span class="stat-number" id="win-percent">0%</span>
-                <span class="stat-text">Victorias</span>
-            </div>
-            <div class="stat-box">
-                <span class="stat-number" id="games-played">0</span>
-                <span class="stat-text">Jugados</span>
-            </div>
-            <div class="stat-box lp-box" id="lp-stat-box">
-                <span class="stat-number lp-current" id="lp-count">0</span>
-                <span class="stat-text">LP</span>
-                <span class="lp-change-indicator" id="lp-indicator"></span>
+            <div class="flex items-center gap-2 md:gap-4">
+                <button id="stats-btn" class="text-neutral-400 hover:text-orange-400 transition-colors active:scale-95 duration-200" title="Estadisticas">
+                    <span class="material-symbols-outlined">bar_chart</span>
+                </button>
+                <button id="leaderboard-btn" class="text-neutral-400 hover:text-orange-400 transition-colors active:scale-95 duration-200" title="Ranking">
+                    <span class="material-symbols-outlined">leaderboard</span>
+                </button>
+                <button id="settings-btn" class="text-neutral-400 hover:text-orange-400 transition-colors active:scale-95 duration-200" title="Ajustes">
+                    <span class="material-symbols-outlined">settings</span>
+                </button>
+                <button id="achievements-btn" class="text-neutral-400 hover:text-orange-400 transition-colors active:scale-95 duration-200" title="Logros">
+                    <span class="material-symbols-outlined">emoji_events</span>
+                </button>
             </div>
         </div>
+    </header>
 
-        <main class="game-container">
-            <div id="loading" class="loading">
-                <div class="spinner"></div>
-                <p>Invocando personajes...</p>
-            </div>
+    <main class="pt-20 pb-32 px-4 max-w-2xl mx-auto relative min-h-screen flex flex-col items-center">
 
-            <div id="error" class="error hidden">
-                <p>Error al cargar personajes</p>
-                <button id="retry-btn">Reintentar</button>
-            </div>
+        <!-- Background Effects -->
+        <div class="fixed inset-0 pointer-events-none nine-tails-smoke z-0"></div>
+        <div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] md:w-[800px] md:h-[800px] chakra-glow z-0"></div>
 
-            <div id="game-area" class="hidden">
-                <div class="daily-countdown" id="daily-countdown">
-                    <span>Sig. personaje en:</span>
-                    <span id="countdown-timer">--:--:--</span>
-                </div>
-
-                <div class="game-type-selector" id="game-type-selector">
-                    <button class="game-type-btn active" data-type="character">
-                        <span class="type-icon">🥷</span>
-                        <span class="type-name">Personaje</span>
-                    </button>
-                    <button class="game-type-btn" data-type="jutsu">
-                        <span class="type-icon">⚡</span>
-                        <span class="type-name">Jutsu</span>
-                    </button>
-                    <button class="game-type-btn" data-type="eyes">
-                        <span class="type-icon">👁️</span>
-                        <span class="type-name">Ojos</span>
-                    </button>
-                    <button class="game-type-btn" data-type="relation">
-                        <span class="type-icon">🔗</span>
-                        <span class="type-name">Relacion</span>
-                    </button>
-                </div>
-
-                <div class="attempts-bar" id="attempts-bar">
-                    <div class="attempt-dot active"></div>
-                    <div class="attempt-dot"></div>
-                    <div class="attempt-dot"></div>
-                    <div class="attempt-dot"></div>
-                    <div class="attempt-dot"></div>
-                    <div class="attempt-dot"></div>
-                </div>
-
-                <div class="hint-buttons">
-                    <button class="hint-btn" id="hint-village" title="Pista Aldea">🏯</button>
-                    <button class="hint-btn" id="hint-clan" title="Pista Clan">👥</button>
-                    <button class="hint-btn" id="hint-rank" title="Pista Rango">⚔️</button>
-                    <button class="hint-btn" id="hint-element" title="Pista Elemento">🔥</button>
-                    <button class="hint-btn" id="hint-debut" title="Pista Estado">📺</button>
-                    <button class="hint-btn" id="hint-birthday" title="Pista Cumpleaños">🎂</button>
-                    <button class="hint-btn" id="hint-height" title="Pista Altura">📏</button>
-                    <button class="hint-btn" id="hint-tools" title="Pista Armas">🗡️</button>
-                </div>
-
-                <div class="character-preview">
-                    <div class="image-wrapper">
-                        <div class="image-container">
-                            <img id="character-image" src="" alt="Personaje">
-                            <div id="blur-overlay" class="blur-overlay"></div>
-                            <div id="question-mark" class="question-mark">?</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="input-section">
-                    <div class="input-wrapper">
-                        <input type="text" id="guess-input" placeholder="¿Quién es este ninja?" autocomplete="off"
-                            autofocus>
-                        <button id="guess-btn">📌</button>
-                    </div>
-                    <div id="suggestions" class="suggestions hidden"></div>
-                </div>
-
-                <div id="guesses-container">
-                    <div class="attributes-header">
-                        <div class="attr-label">Personaje</div>
-                        <div class="attr-label">Sexo</div>
-                        <div class="attr-label">Aldea</div>
-                        <div class="attr-label">Clan</div>
-                        <div class="attr-label">Rango</div>
-                        <div class="attr-label">Elemento</div>
-                        <div class="attr-label">Arco</div>
-                        <div class="attr-label">Estado</div>
-                    </div>
-                    <div class="attributes-header relation-header" style="display: none;">
-                        <div class="attr-label">Personaje</div>
-                        <div class="attr-label">Relacion</div>
-                        <div class="attr-label">Objetivo</div>
-                    </div>
-                    <div id="guesses-list" class="guesses-list"></div>
-                </div>
-            </div>
-
-            <div id="end-game-modal" class="end-game-modal hidden">
-                <div id="end-game" class="end-game">
-                    <div class="end-header">
-                        <h2 id="end-title">¡VICTORIA!</h2>
-                        <p id="end-subtitle"></p>
-                    </div>
-                    <div class="end-character-preview">
-                        <img id="answer-image" src="" alt="Personaje" class="end-character-img">
-                        <h3 id="answer-name">Ninja Seleccionado</h3>
-                    </div>
-                    <div class="guess-distribution" id="guess-distribution">
-                        <h4>Distribucion de Intentos</h4>
-                        <div class="distribution-bar" id="distribution-bar"></div>
-                    </div>
-                    <div class="share-section">
-                        <p id="share-text"></p>
-                        <button id="share-btn-end" class="share-btn">📤 Compartir</button>
-                    </div>
-                    <button id="play-again" class="play-again-btn">Siguiente →</button>
-                </div>
-            </div>
-        </main>
-
-        <div id="menu-modal" class="modal hidden">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2>Menu</h2>
-                    <button class="close-btn" id="close-menu">×</button>
-                </div>
-                <div class="menu-options">
-                    <button class="menu-option" id="menu-stats">
-                        <span>📊</span> Estadisticas
-                    </button>
-                    <button class="menu-option" id="menu-howto">
-                        <span>❓</span> Como Jugar
-                    </button>
-                    <button class="menu-option" id="menu-credits">
-                        <span>💡</span> Creditos
-                    </button>
-                </div>
-            </div>
+        <!-- Loading -->
+        <div id="loading" class="fixed inset-0 flex flex-col items-center justify-center z-40 bg-surface">
+            <div class="w-16 h-16 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin"></div>
+            <p class="mt-4 text-neutral-400 font-label">Invocando personajes...</p>
         </div>
 
-        <div id="stats-modal" class="modal hidden">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2>📊 Estadisticas</h2>
-                    <button class="close-btn" id="close-stats">×</button>
-                </div>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon">🎮</div>
-                        <span class="stat-card-num" id="stat-played">0</span>
-                        <span class="stat-card-label">Jugadas</span>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">✅</div>
-                        <span class="stat-card-num" id="stat-win">0</span>
-                        <span class="stat-card-label">Ganadas</span>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">🎯</div>
-                        <span class="stat-card-num" id="stat-pct">0%</span>
-                        <span class="stat-card-label">Efectividad</span>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">🔥</div>
-                        <span class="stat-card-num" id="stat-streak">0</span>
-                        <span class="stat-card-label">Racha</span>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">⭐</div>
-                        <span class="stat-card-num" id="stat-best">0</span>
-                        <span class="stat-card-label">Récord</span>
-                    </div>
-                    <div class="stat-card rank-card">
-                        <div class="stat-icon">🎖️</div>
-                        <span class="stat-card-num" id="stat-level">Estudiante V</span>
-                        <span class="stat-card-label">Rango Ninja</span>
-                    </div>
-                    <div class="stat-card lp-card">
-                        <div class="stat-icon">💎</div>
-                        <span class="stat-card-num" id="stat-lp-count">0 LP</span>
-                        <span class="stat-card-label">Puntos de Liga</span>
-                    </div>
-                </div>
-                <div class="stat-distribution">
-                    <h4>Distribucion de Intentos</h4>
-                    <div id="full-distribution"></div>
-                </div>
-                <div class="next-character">
-                    <p>Sig. Naruto DLE en:</p>
-                    <span id="modal-countdown">--:--:--</span>
-                </div>
-            </div>
+        <!-- Error -->
+        <div id="error" class="hidden fixed inset-0 flex flex-col items-center justify-center z-40 bg-surface">
+            <span class="material-symbols-outlined text-6xl text-error mb-4">error</span>
+            <p class="text-neutral-400 font-label mb-4">Error al cargar personajes</p>
+            <button id="retry-btn" class="bg-orange-500 text-black px-6 py-3 rounded-xl font-bold">Reintentar</button>
         </div>
 
-        <div id="settings-modal" class="modal hidden">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2>⚙️ Ajustes</h2>
-                    <button class="close-btn" id="close-settings">×</button>
+        <!-- Game Area -->
+        <div id="game-area" class="w-full hidden">
+
+            <!-- Stats Bar -->
+            <div class="flex items-center justify-center gap-3 md:gap-5 mb-6 py-3 px-4 bg-surface-container-low/50 rounded-2xl backdrop-blur-md border border-outline-variant/10">
+                <div class="flex flex-col items-center">
+                    <span id="streak-count" class="font-headline font-bold text-lg text-orange-400">0</span>
+                    <span class="font-label text-[8px] uppercase tracking-wider text-neutral-500">Racha</span>
                 </div>
-                <div class="settings-list">
-                    <div class="setting-item">
-                        <div class="setting-info">
-                            <span class="setting-label">Modo Dificil</span>
-                            <span class="setting-desc">Las pistas reveladas deben ser usadas en siguientes
-                                intentos</span>
-                        </div>
-                        <label class="toggle">
-                            <input type="checkbox" id="hard-mode-toggle">
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-                    <div class="setting-item">
-                        <div class="setting-info">
-                            <span class="setting-label">Alto Contraste</span>
-                            <span class="setting-desc">Mejor visibilidad para daltonicos</span>
-                        </div>
-                        <label class="toggle">
-                            <input type="checkbox" id="contrast-toggle">
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-                    <div class="setting-item">
-                        <div class="setting-info">
-                            <span class="setting-label">Pistas Visuales</span>
-                            <span class="setting-desc">Mostrar imagen parcialmente revelada</span>
-                        </div>
-                        <label class="toggle">
-                            <input type="checkbox" id="visual-hints-toggle" checked>
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
+                <div class="w-px h-8 bg-neutral-700"></div>
+                <div class="flex flex-col items-center">
+                    <span id="best-streak" class="font-headline font-bold text-lg">0</span>
+                    <span class="font-label text-[8px] uppercase tracking-wider text-neutral-500">Mejor</span>
                 </div>
-                <div class="danger-zone">
-                    <button class="danger-btn" id="reset-progress">Reiniciar Progreso</button>
+                <div class="w-px h-8 bg-neutral-700"></div>
+                <div class="flex flex-col items-center">
+                    <span id="win-percent" class="font-headline font-bold text-lg text-green-400">0%</span>
+                    <span class="font-label text-[8px] uppercase tracking-wider text-neutral-500">Victorias</span>
+                </div>
+                <div class="w-px h-8 bg-neutral-700"></div>
+                <div class="flex flex-col items-center">
+                    <span id="games-played" class="font-headline font-bold text-lg">0</span>
+                    <span class="font-label text-[8px] uppercase tracking-wider text-neutral-500">Jugados</span>
+                </div>
+                <div class="w-px h-8 bg-neutral-700"></div>
+                <div class="flex flex-col items-center" id="lp-stat-box">
+                    <span id="lp-count" class="font-headline font-bold text-lg text-orange-400">0</span>
+                    <span class="font-label text-[8px] uppercase tracking-wider text-neutral-500">LP</span>
+                    <span id="lp-indicator" class="text-[10px] font-bold"></span>
                 </div>
             </div>
-        </div>
 
-        <div id="login-modal" class="modal">
-            <div class="modal-content login-modal-content">
-                <div class="login-icon">🥷</div>
-                <h2 class="login-title">Identidad Ninja</h2>
-                <p class="login-desc">Ingresa tu nombre shinobi para guardar tu progreso y competir en el ranking global.</p>
-                <div class="input-wrapper login-input-wrapper">
-                    <input type="text" id="username-input" placeholder="Escribe tu nombre..." maxlength="15" autocomplete="off">
+            <!-- Mode Selector -->
+            <div class="flex items-center justify-center gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide" id="mode-selector">
+                <button class="mode-btn active px-4 py-2 bg-surface-container-high rounded-full text-sm font-bold text-neutral-400 hover:bg-surface-variant transition-all whitespace-nowrap" data-mode="daily">
+                    <span class="material-symbols-outlined text-base align-middle mr-1">calendar_today</span>Diario
+                </button>
+                <button class="mode-btn px-4 py-2 bg-surface-container-high rounded-full text-sm font-bold text-neutral-400 hover:bg-surface-variant transition-all whitespace-nowrap" data-mode="infinite">
+                    <span class="material-symbols-outlined text-base align-middle mr-1">all_inclusive</span>Infinito
+                </button>
+                <button class="mode-btn px-4 py-2 bg-surface-container-high rounded-full text-sm font-bold text-neutral-400 hover:bg-surface-variant transition-all whitespace-nowrap" data-mode="hard">
+                    <span class="material-symbols-outlined text-base align-middle mr-1">skull</span>Dificil
+                </button>
+            </div>
+
+            <!-- Category Selector -->
+            <div class="flex items-center justify-center gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide" id="category-selector">
+                <button class="category-btn active px-3 py-1.5 bg-surface-container-high rounded-full text-xs font-bold text-neutral-400 hover:bg-surface-variant transition-all whitespace-nowrap" data-category="all">Todos</button>
+                <button class="category-btn px-3 py-1.5 bg-surface-container-high rounded-full text-xs font-bold text-neutral-400 hover:bg-surface-variant transition-all whitespace-nowrap" data-category="akatsuki">☠️ Akatsuki</button>
+                <button class="category-btn px-3 py-1.5 bg-surface-container-high rounded-full text-xs font-bold text-neutral-400 hover:bg-surface-variant transition-all whitespace-nowrap" data-category="classic">📺 Naruto</button>
+                <button class="category-btn px-3 py-1.5 bg-surface-container-high rounded-full text-xs font-bold text-neutral-400 hover:bg-surface-variant transition-all whitespace-nowrap" data-category="shippuden">🌀 Shippuden</button>
+                <button class="category-btn px-3 py-1.5 bg-surface-container-high rounded-full text-xs font-bold text-neutral-400 hover:bg-surface-variant transition-all whitespace-nowrap" data-category="war">⚔️ Guerra</button>
+                <button class="category-btn px-3 py-1.5 bg-surface-container-high rounded-full text-xs font-bold text-neutral-400 hover:bg-surface-variant transition-all whitespace-nowrap" data-category="boruto">🌸 Boruto</button>
+            </div>
+
+            <!-- Game Type Selector -->
+            <div class="flex items-center justify-center gap-2 mb-6" id="game-type-selector">
+                <button class="game-type-btn active px-4 py-2 bg-surface-container-high rounded-xl text-sm font-bold text-neutral-400 hover:bg-surface-variant transition-all" data-type="character">
+                    <span class="material-symbols-outlined text-base align-middle mr-1">person</span>Personaje
+                </button>
+                <button class="game-type-btn px-4 py-2 bg-surface-container-high rounded-xl text-sm font-bold text-neutral-400 hover:bg-surface-variant transition-all" data-type="jutsu">
+                    <span class="material-symbols-outlined text-base align-middle mr-1">bolt</span>Jutsu
+                </button>
+                <button class="game-type-btn px-4 py-2 bg-surface-container-high rounded-xl text-sm font-bold text-neutral-400 hover:bg-surface-variant transition-all" data-type="eyes">
+                    <span class="material-symbols-outlined text-base align-middle mr-1">visibility</span>Ojos
+                </button>
+                <button class="game-type-btn px-4 py-2 bg-surface-container-high rounded-xl text-sm font-bold text-neutral-400 hover:bg-surface-variant transition-all" data-type="relation">
+                    <span class="material-symbols-outlined text-base align-middle mr-1">link</span>Relacion
+                </button>
+            </div>
+
+            <!-- Daily Countdown -->
+            <div id="daily-countdown" class="text-center mb-4">
+                <span class="font-label text-xs text-neutral-500 uppercase tracking-wider">Siguiente en: </span>
+                <span id="countdown-timer" class="font-headline font-bold text-orange-400">--:--:--</span>
+            </div>
+
+            <!-- Attempt Dots -->
+            <div class="flex items-center justify-center gap-3 mb-6" id="attempts-bar">
+                <div class="attempt-dot active"></div>
+                <div class="attempt-dot"></div>
+                <div class="attempt-dot"></div>
+                <div class="attempt-dot"></div>
+                <div class="attempt-dot"></div>
+                <div class="attempt-dot"></div>
+            </div>
+
+            <!-- Hint Buttons -->
+            <div class="flex items-center justify-center gap-2 mb-6 flex-wrap">
+                <button id="hint-village" class="hint-btn w-12 h-12 bg-surface-container-high rounded-xl border border-outline-variant/30 hover:bg-surface-variant transition-all flex items-center justify-center text-xl" title="Aldea">🏯</button>
+                <button id="hint-clan" class="hint-btn w-12 h-12 bg-surface-container-high rounded-xl border border-outline-variant/30 hover:bg-surface-variant transition-all flex items-center justify-center text-xl" title="Clan">👥</button>
+                <button id="hint-rank" class="hint-btn w-12 h-12 bg-surface-container-high rounded-xl border border-outline-variant/30 hover:bg-surface-variant transition-all flex items-center justify-center text-xl" title="Rango">⚔️</button>
+                <button id="hint-element" class="hint-btn w-12 h-12 bg-surface-container-high rounded-xl border border-outline-variant/30 hover:bg-surface-variant transition-all flex items-center justify-center text-xl" title="Elemento">🔥</button>
+                <button id="hint-debut" class="hint-btn w-12 h-12 bg-surface-container-high rounded-xl border border-outline-variant/30 hover:bg-surface-variant transition-all flex items-center justify-center text-xl" title="Estado">📺</button>
+                <button id="hint-birthday" class="hint-btn w-12 h-12 bg-surface-container-high rounded-xl border border-outline-variant/30 hover:bg-surface-variant transition-all flex items-center justify-center text-xl" title="Cumpleaños">🎂</button>
+                <button id="hint-height" class="hint-btn w-12 h-12 bg-surface-container-high rounded-xl border border-outline-variant/30 hover:bg-surface-variant transition-all flex items-center justify-center text-xl" title="Altura">📏</button>
+                <button id="hint-tools" class="hint-btn w-12 h-12 bg-surface-container-high rounded-xl border border-outline-variant/30 hover:bg-surface-variant transition-all flex items-center justify-center text-xl" title="Armas">🗡️</button>
+            </div>
+
+            <!-- Character Preview -->
+            <div class="mb-8 relative z-10">
+                <div class="w-44 h-44 md:w-52 md:h-52 mx-auto rounded-full bg-surface-variant/40 backdrop-blur-2xl p-1 shadow-[0_0_50px_rgba(255,153,0,0.15)] flex items-center justify-center relative overflow-hidden border border-outline-variant/20">
+                    <div class="absolute inset-0 bg-gradient-to-tr from-orange-500/10 to-transparent"></div>
+                    <img id="character-image" class="w-full h-full object-cover rounded-full" src="" alt="Personaje" referrerpolicy="no-referrer">
+                    <div id="blur-overlay" class="blur-overlay rounded-full flex items-center justify-center">
+                    </div>
+                    <span id="question-mark" class="material-symbols-outlined text-7xl text-neutral-500 font-light absolute" style="font-variation-settings: 'wght' 200;">question_mark</span>
+                    <!-- Corner Accents -->
+                    <div class="absolute top-4 left-4 w-2 h-2 bg-orange-500 rounded-full"></div>
+                    <div class="absolute bottom-4 right-4 w-2 h-2 bg-orange-500 rounded-full"></div>
                 </div>
-                <button id="save-username-btn" class="play-again-btn">Comenzar Misión</button>
-                <p class="login-hint">Mínimo 3 caracteres</p>
+                <div class="mt-4 text-center">
+                    <span class="font-headline text-[10px] font-bold uppercase tracking-[0.3em] text-orange-500/80">Mission Objective</span>
+                    <h2 class="font-headline text-xl md:text-2xl font-black text-on-surface mt-1 tracking-tight">IDENTIFY THE SHINOBI</h2>
+                </div>
+            </div>
+
+            <!-- Input -->
+            <div class="w-full mb-8">
+                <div class="relative group">
+                    <div class="absolute inset-0 bg-orange-500/10 blur-xl group-focus-within:bg-orange-500/20 transition-all rounded-2xl"></div>
+                    <div class="relative bg-surface-container-highest border border-outline-variant/30 rounded-2xl flex items-center p-2 shadow-2xl overflow-hidden group-focus-within:border-orange-500/50 transition-all">
+                        <span class="material-symbols-outlined ml-3 text-neutral-500 group-focus-within:text-orange-400">search</span>
+                        <input id="guess-input" class="bg-transparent border-none focus:ring-0 text-on-surface placeholder:text-neutral-500 w-full px-4 font-label font-medium" placeholder="¿Quién es este ninja?" type="text" autocomplete="off">
+                        <button id="guess-btn" class="bg-orange-500 text-black p-3 rounded-xl flex items-center justify-center hover:bg-orange-400 transition-colors active:scale-95 duration-150">
+                            <span class="material-symbols-outlined">send</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="suggestions" class="hidden mt-2 bg-surface-container-highest border border-outline-variant/30 rounded-xl overflow-hidden max-h-64 overflow-y-auto"></div>
+            </div>
+
+            <!-- Guesses List -->
+            <div id="guesses-container" class="w-full mb-6">
+                <!-- Attributes Header -->
+                <div class="attributes-header flex items-center justify-between px-2 mb-3">
+                    <div class="flex gap-1 md:gap-2 text-[8px] md:text-[10px] uppercase font-bold text-outline tracking-widest">
+                        <span class="w-12 md:w-14">Personaje</span>
+                        <span class="w-10">Sexo</span>
+                        <span class="w-10">Aldea</span>
+                        <span class="w-10">Clan</span>
+                        <span class="w-10">Rango</span>
+                        <span class="w-10">Elemento</span>
+                        <span class="w-10">Arco</span>
+                        <span class="w-10">Estado</span>
+                    </div>
+                </div>
+                <!-- Relation Header (hidden by default) -->
+                <div class="attributes-header relation-header hidden flex items-center justify-between px-2 mb-3">
+                    <div class="flex gap-1 md:gap-2 text-[10px] uppercase font-bold text-outline tracking-widest">
+                        <span class="w-14">Personaje</span>
+                        <span class="w-20">Relacion</span>
+                        <span class="w-20">Objetivo</span>
+                    </div>
+                </div>
+                <div id="guesses-list" class="space-y-3"></div>
             </div>
         </div>
+    </main>
 
-        <div id="leaderboard-modal" class="modal hidden">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2>🏆 Ranking Global</h2>
-                    <button class="close-btn" id="close-leaderboard">×</button>
+    <!-- Bottom Navigation -->
+    <nav class="fixed bottom-0 left-0 w-full z-50 bg-neutral-900/90 backdrop-blur-lg rounded-t-3xl shadow-[0_-8px_30px_rgba(0,0,0,0.5)] flex justify-around items-center px-2 md:px-4 pb-4 pt-3">
+        <button id="nav-archive" class="flex flex-col items-center justify-center text-neutral-500 px-3 md:px-5 py-2 hover:bg-neutral-800 rounded-xl transition-all active:scale-90 duration-150">
+            <span class="material-symbols-outlined">history_edu</span>
+            <span class="font-label text-[8px] md:text-[10px] font-bold uppercase tracking-widest mt-1">Archive</span>
+        </button>
+        <button id="nav-daily" class="flex flex-col items-center justify-center bg-orange-500 text-neutral-950 rounded-xl px-3 md:px-5 py-2 scale-105 active:scale-90 duration-150">
+            <span class="material-symbols-outlined">theater_comedy</span>
+            <span class="font-label text-[8px] md:text-[10px] font-bold uppercase tracking-widest mt-1">Daily</span>
+        </button>
+        <button id="nav-versus" class="flex flex-col items-center justify-center text-neutral-500 px-3 md:px-5 py-2 hover:bg-neutral-800 rounded-xl transition-all active:scale-90 duration-150">
+            <span class="material-symbols-outlined">swords</span>
+            <span class="font-label text-[8px] md:text-[10px] font-bold uppercase tracking-widest mt-1">Versus</span>
+        </button>
+        <button id="nav-scrolls" class="flex flex-col items-center justify-center text-neutral-500 px-3 md:px-5 py-2 hover:bg-neutral-800 rounded-xl transition-all active:scale-90 duration-150">
+            <span class="material-symbols-outlined">menu_book</span>
+            <span class="font-label text-[8px] md:text-[10px] font-bold uppercase tracking-widest mt-1">Scrolls</span>
+        </button>
+    </nav>
+
+    <!-- Stats Modal -->
+    <div id="stats-modal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="font-headline font-black text-2xl">ESTADISTICAS</h2>
+                <button id="close-stats" class="text-neutral-400 hover:text-white transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="grid grid-cols-3 md:grid-cols-4 gap-3 mb-6">
+                <div class="bg-surface-container-high rounded-xl p-3 text-center">
+                    <span id="stat-played" class="font-headline font-bold text-xl md:text-2xl text-orange-400">0</span>
+                    <span class="font-label text-[8px] uppercase block mt-1 text-neutral-400">Jugadas</span>
                 </div>
-                <div class="leaderboard-content" id="leaderboard-list">
-                    <div class="loading-mini">Cargando ninjas...</div>
+                <div class="bg-surface-container-high rounded-xl p-3 text-center">
+                    <span id="stat-win" class="font-headline font-bold text-xl md:text-2xl text-green-400">0</span>
+                    <span class="font-label text-[8px] uppercase block mt-1 text-neutral-400">Ganadas</span>
+                </div>
+                <div class="bg-surface-container-high rounded-xl p-3 text-center">
+                    <span id="stat-pct" class="font-headline font-bold text-xl md:text-2xl">0%</span>
+                    <span class="font-label text-[8px] uppercase block mt-1 text-neutral-400">Efectividad</span>
+                </div>
+                <div class="bg-surface-container-high rounded-xl p-3 text-center">
+                    <span id="stat-streak" class="font-headline font-bold text-xl md:text-2xl text-orange-400">0</span>
+                    <span class="font-label text-[8px] uppercase block mt-1 text-neutral-400">Racha</span>
+                </div>
+                <div class="bg-surface-container-high rounded-xl p-3 text-center">
+                    <span id="stat-best" class="font-headline font-bold text-xl md:text-2xl">0</span>
+                    <span class="font-label text-[8px] uppercase block mt-1 text-neutral-400">Record</span>
+                </div>
+                <div class="bg-surface-container-high rounded-xl p-3 text-center col-span-2 md:col-span-1">
+                    <span id="stat-level" class="font-headline font-bold text-sm md:text-lg text-orange-400">Genin</span>
+                    <span class="font-label text-[8px] uppercase block mt-1 text-neutral-400">Rango</span>
+                </div>
+                <div class="bg-surface-container-high rounded-xl p-3 text-center col-span-3 md:col-span-1">
+                    <span id="stat-lp-count" class="font-headline font-bold text-xl md:text-2xl text-orange-400">0 LP</span>
+                    <span class="font-label text-[8px] uppercase block mt-1 text-neutral-400">Puntos</span>
                 </div>
             </div>
-        </div>
-
-        <div id="howto-modal" class="modal hidden">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2>Como Jugar</h2>
-                    <button class="close-btn" id="close-howto">×</button>
-                </div>
-                <div class="howto-content">
-                    <p>Adivina el personaje oculto de Naruto en 6 intentos.</p>
-                    <div class="howto-section">
-                        <h4>🎯 Como Jugar</h4>
-                        <ul>
-                            <li>Cada intento revela pistas sobre el personaje</li>
-                            <li>Verde = Correcto</li>
-                            <li>Amarillo = Parcialmente correcto</li>
-                            <li>Rojo = Incorrecto</li>
-                        </ul>
-                    </div>
-                    <div class="howto-section">
-                        <h4>📅 Modo Diario</h4>
-                        <ul>
-                            <li>Un nuevo personaje cada dia</li>
-                            <li>Compartes resultados sin spoilers</li>
-                        </ul>
-                    </div>
-                    <div class="howto-section">
-                        <h4>♾️ Modo Infinito</h4>
-                        <ul>
-                            <li>Juega tantos personajes como quieras</li>
-                            <li>Suma puntos por cada victoria</li>
-                        </ul>
-                    </div>
-                </div>
+            <div class="bg-surface-container-high rounded-xl p-4 mb-4">
+                <h3 class="font-headline font-bold text-sm mb-3">Distribucion de Intentos</h3>
+                <div id="full-distribution" class="space-y-2"></div>
+            </div>
+            <div class="text-center">
+                <p class="font-label text-xs text-neutral-500 uppercase">Siguiente en:</p>
+                <span id="modal-countdown" class="font-headline font-bold text-orange-400">--:--:--</span>
             </div>
         </div>
-
-        <footer class="footer">
-            <p>Inspirado en Wordle • API: <a href="https://dattebayo-api.onrender.com/" target="_blank">Dattebayo</a>
-            </p>
-        </footer>
     </div>
 
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="font-headline font-black text-2xl">AJUSTES</h2>
+                <button id="close-settings" class="text-neutral-400 hover:text-white transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div class="flex items-center justify-between p-3 bg-surface-container-high rounded-xl">
+                    <div>
+                        <span class="font-label font-bold text-sm">Modo Dificil</span>
+                        <p class="text-xs text-neutral-500 mt-0.5">Las pistas deben usarse en siguientes intentos</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="hard-mode-toggle" class="sr-only peer">
+                        <div class="w-11 h-6 bg-neutral-600 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                    </label>
+                </div>
+                <div class="flex items-center justify-between p-3 bg-surface-container-high rounded-xl">
+                    <div>
+                        <span class="font-label font-bold text-sm">Alto Contraste</span>
+                        <p class="text-xs text-neutral-500 mt-0.5">Mejor visibilidad para daltonicos</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="contrast-toggle" class="sr-only peer">
+                        <div class="w-11 h-6 bg-neutral-600 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                    </label>
+                </div>
+                <div class="flex items-center justify-between p-3 bg-surface-container-high rounded-xl">
+                    <div>
+                        <span class="font-label font-bold text-sm">Pistas Visuales</span>
+                        <p class="text-xs text-neutral-500 mt-0.5">Mostrar imagen parcialmente revelada</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="visual-hints-toggle" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-neutral-600 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                    </label>
+                </div>
+            </div>
+            <button id="reset-progress" class="w-full mt-6 bg-red-900/30 text-red-400 py-3 rounded-xl font-bold hover:bg-red-900/50 transition-colors border border-red-900/50">
+                Reiniciar Progreso
+            </button>
+        </div>
+    </div>
+
+    <!-- Leaderboard Modal -->
+    <div id="leaderboard-modal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="font-headline font-black text-2xl">RANKING GLOBAL</h2>
+                <button id="close-leaderboard" class="text-neutral-400 hover:text-white transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div id="leaderboard-list" class="space-y-3">
+                <div class="text-center text-neutral-500 py-8">Cargando...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Menu Modal -->
+    <div id="menu-modal" class="modal-backdrop hidden">
+        <div class="modal-content max-w-xs">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="font-headline font-black text-2xl">MENU</h2>
+                <button id="close-menu" class="text-neutral-400 hover:text-white transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="space-y-3">
+                <button id="menu-stats" class="w-full flex items-center gap-3 p-3 bg-surface-container-high rounded-xl hover:bg-surface-variant transition-colors">
+                    <span class="material-symbols-outlined text-orange-400">bar_chart</span>
+                    <span class="font-label font-bold">Estadisticas</span>
+                </button>
+                <button id="menu-howto" class="w-full flex items-center gap-3 p-3 bg-surface-container-high rounded-xl hover:bg-surface-variant transition-colors">
+                    <span class="material-symbols-outlined text-orange-400">help</span>
+                    <span class="font-label font-bold">Como Jugar</span>
+                </button>
+                <button id="menu-credits" class="w-full flex items-center gap-3 p-3 bg-surface-container-high rounded-xl hover:bg-surface-variant transition-colors">
+                    <span class="material-symbols-outlined text-orange-40led">info</span>
+                    <span class="font-label font-bold">Creditos</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- How To Play Modal -->
+    <div id="howto-modal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="font-headline font-black text-2xl">COMO JUGAR</h2>
+                <button id="close-howto" class="text-neutral-400 hover:text-white transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="space-y-4 text-sm text-neutral-300">
+                <p class="font-label">Adivina el personaje oculto de Naruto en 6 intentos.</p>
+                <div>
+                    <h4 class="font-headline font-bold text-orange-400 mb-2">🎯 Como Jugar</h4>
+                    <ul class="list-disc list-inside space-y-1 text-neutral-400">
+                        <li>Cada intento revela pistas sobre el personaje</li>
+                        <li>Verde = Correcto</li>
+                        <li>Amarillo = Parcialmente correcto</li>
+                        <li>Gris = Incorrecto</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-headline font-bold text-orange-400 mb-2">📅 Modo Diario</h4>
+                    <ul class="list-disc list-inside space-y-1 text-neutral-400">
+                        <li>Un nuevo personaje cada dia</li>
+                        <li>Tu progreso se guarda automaticamente</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-headline font-bold text-orange-400 mb-2">♾️ Modo Infinito</h4>
+                    <ul class="list-disc list-inside space-y-1 text-neutral-400">
+                        <li>Juega tantos personajes como quieras</li>
+                        <li>Suma puntos por cada victoria</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Achievements Modal -->
+    <div id="achievements-modal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="font-headline font-black text-2xl">LOGROS</h2>
+                <button id="close-achievements" class="text-neutral-400 hover:text-white transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div id="achievements-list" class="space-y-3"></div>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal-backdrop">
+        <div class="modal-content text-center py-8 max-w-sm">
+            <span class="material-symbols-outlined text-6xl text-orange-500 mb-4">person</span>
+            <h2 class="font-headline font-black text-2xl mb-2">IDENTIDAD NINJA</h2>
+            <p class="text-neutral-400 font-label text-sm mb-6">Ingresa tu nombre shinobi para guardar tu progreso y competir en el ranking.</p>
+            <input id="username-input" class="w-full bg-surface-container-high border border-outline-variant/30 rounded-xl px-4 py-3 text-center font-label mb-4 focus:border-orange-500 focus:outline-none" placeholder="Escribe tu nombre..." type="text" maxlength="15" autocomplete="off">
+            <button id="save-username-btn" class="w-full bg-orange-500 text-black py-3 rounded-xl font-bold hover:bg-orange-400 transition-colors active:scale-95 duration-150">
+                COMENZAR MISION
+            </button>
+            <p class="text-xs text-neutral-500 mt-3">Minimo 3 caracteres</p>
+        </div>
+    </div>
+
+    <!-- End Game Modal -->
+    <div id="end-game-modal" class="modal-backdrop hidden">
+        <div class="modal-content text-center max-w-sm">
+            <div class="mb-6">
+                <h2 id="end-title" class="font-headline font-black text-4xl text-orange-500">VICTORIA!</h2>
+                <p id="end-subtitle" class="font-label text-neutral-400 mt-2"></p>
+            </div>
+            <div class="w-32 h-32 mx-auto rounded-full bg-surface-variant/40 p-1 mb-4 shadow-lg">
+                <img id="answer-image" class="w-full h-full object-cover rounded-full" src="" alt="Personaje" referrerpolicy="no-referrer">
+            </div>
+            <h3 id="answer-name" class="font-headline font-black text-xl mb-6">Personaje</h3>
+            <div id="guess-distribution" class="bg-surface-container-high rounded-xl p-4 mb-4">
+                <h4 class="font-label text-xs uppercase mb-3 text-neutral-400">Intentos</h4>
+                <div id="distribution-bar" class="flex justify-center gap-1"></div>
+            </div>
+            <p id="share-text" class="hidden text-xs font-mono bg-surface-container-low p-2 rounded mb-4 whitespace-pre"></p>
+            <button id="share-btn-end" class="w-full bg-orange-500 text-black py-3 rounded-xl font-bold mb-3 hover:bg-orange-400 transition-colors active:scale-95 duration-150">
+                <span class="material-symbols-outlined align-middle mr-2">share</span>COMPARTIR
+            </button>
+            <button id="play-again" class="w-full bg-surface-container-high py-3 rounded-xl font-bold hover:bg-surface-variant transition-colors active:scale-95 duration-150">
+                SIGUIENTE →
+            </button>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="fixed bottom-20 left-0 w-full text-center text-[10px] text-neutral-600 pointer-events-none">
+        Inspirado en Wordle • API: Dattebayo
+    </div>
+
+    <!-- Visual Accents -->
+    <div class="fixed top-20 right-10 w-48 h-px bg-gradient-to-l from-orange-500/20 to-transparent rotate-45 pointer-events-none hidden md:block"></div>
+    <div class="fixed bottom-40 left-10 w-64 h-px bg-gradient-to-r from-orange-500/20 to-transparent -rotate-45 pointer-events-none hidden md:block"></div>
+
+    <!-- Scripts -->
     <script src="supabase-config.js"></script>
     <script src="app.js"></script>
 </body>
