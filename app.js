@@ -774,11 +774,8 @@ function renderGuessRow(guess, target) {
     cells.forEach((cell, i) => {
         const div = document.createElement('div');
         const isCorrect = !cell.locked && cell.val === cell.target;
-        const isPartial = !cell.locked && !isCorrect && cell.val !== 'Unknown' && cell.target !== 'Unknown' && 
-                         (cell.val.includes(cell.target) || cell.target.includes(cell.val) || 
-                          (cell.val === 'Vivo' && cell.target === 'Vivo'));
         div.className = `guess-cell ${cell.className || (cell.locked ? 'locked' : (isCorrect ? 'correct' : 'incorrect'))}`;
-        div.innerHTML = cell.html || cell.val;
+        div.innerHTML = cell.html || cell.val || '';
         div.style.animationDelay = `${i * 0.1}s`;
         if (cell.locked) div.title = `Se desbloquea en intento ${STATUS_UNLOCK_ATTEMPT}`;
         row.appendChild(div);
