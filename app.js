@@ -259,9 +259,33 @@ async function fetchCharacters() {
     const gameArea = document.getElementById('game-area');
 
     try {
-        const response = await fetch(`${API_BASE}/characters?limit=1500`);
-        if (!response.ok) throw new Error('Error loading');
-        const data = await response.json();
+        // Intentar cargar desde cache primero
+        const cached = localStorage.getItem('narutoDLE_characters');
+        let data;
+        
+        if (cached) {
+            const parsed = JSON.parse(cached);
+            const cacheAge = Date.now() - parsed.timestamp;
+            // Cache valido por 24 horas
+            if (cacheAge < 24 * 60 * 60 * 1000) {
+                data = parsed.data;
+                loading.querySelector('p').textContent = 'Cargando desde cache...';
+            }
+        }
+        
+        // Si no hay cache, descargar de la API
+        if (!data) {
+            loading.querySelector('p').textContent = 'Descargando personajes (esto puede tardar)...';
+            const response = await fetch(`${API_BASE}/characters?limit=1500`);
+            if (!response.ok) throw new Error('Error loading');
+            data = await response.json();
+            
+            // Guardar en cache
+            localStorage.setItem('narutoDLE_characters', JSON.stringify({
+                data: data,
+                timestamp: Date.now()
+            }));
+        }
 
         allCharacters = data.characters.filter(c => c.images?.length > 0 && c.name).map(c => ({ ...c, attrs: extractAttributes(c) }))
             .filter(c => c.attrs.debutArc !== 'Unknown');
